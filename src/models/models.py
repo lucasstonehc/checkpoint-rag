@@ -1,3 +1,4 @@
+import uuid
 from pydantic import BaseModel, Field
 from src.utils.document_type import DocumentType
 
@@ -10,7 +11,7 @@ class ChunkMetadata(BaseModel):
     title: str | None = None
 
 class Chunk(BaseModel):
-    id: str
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     text: str
     metadata: ChunkMetadata
 
