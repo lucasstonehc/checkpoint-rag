@@ -2,7 +2,10 @@ import os
 from pathlib import Path
 from unstructured.documents.elements import Element
 from unstructured.partition.md import partition_md
-
+from src.chunking.chunker import chunking
+from src.embeddings.embedder import embedding
+from src.models.models import EmbeddedChunk
+from src.vectorDB.vector_store import create_weaviate_client, create_collection, insert_chunks
 
 def load_markdown(file_path: str | Path) -> list[Element]:
     path = Path(file_path)
@@ -21,14 +24,21 @@ def iter_markdown_files(root: str | Path):
 
 
 if __name__ == "__main__":
-    from src.chunking.chunker import chunking
-    from src.embeddings.embedder import embedding
-    from src.models.models import EmbeddedChunk
+    root = Path(__file__).resolve().parents[2] / "corpus" / "product-docs"
+    if not root.is_dir():
+        raise FileNotFoundError(f"Corpus folder not found: {root}")
 
-    root = Path("../corpus/product-docs")
-    for file_path in iter_markdown_files(root):
-        elements = load_markdown(file_path=file_path)
-        chunks = chunking(elements=elements, file_path=file_path, chunk_size=2000)
-        for chunk in chunks:
-            embed: EmbeddedChunk = embedding(chunk=chunk)
-        print(f"{file_path}: {len(chunks)} chunks")
+    collection_name = "HellixData"
+    weaviate_client = create_weaviate_client()
+    try:
+        create_collection(client=weaviate_client, collection_name=collection_name)
+
+        for file_path in iter_markdown_files(root):
+            print(f"Loading file {file_path}")
+            elements = load_markdown(file_path=file_path)
+            print("Chunking the document ...")
+            chunks = chunking(elements=elements, file_path=file_path, chunk_size=2000)
+            embedded_chunks: list[EmbeddedChunk] = [embedding(chunk=chunk) for chunk in chunks]
+            insert_chunks(client=weaviate_client, chunks=embedded_chunks, collection_name=collection_name)
+    finally:
+        weaviate_client.close()
