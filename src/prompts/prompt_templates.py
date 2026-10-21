@@ -27,3 +27,10 @@ def format_context(documents: list[Document]) -> str:
 
 def prompt_template(user_query: str, context: str) -> str:
     return RAG_PROMPT.format(user_query=user_query, context=context)
+
+
+IMAGE_PROMPT = (
+    "Describe this image from a software product document so it can be found by search. "
+    "State what it shows and transcribe any text, labels, numbers or steps in it. "
+    "Do not guess beyond what is visible."
+)
