@@ -1,8 +1,10 @@
 import weaviate.classes as wvc
+from langchain_core.callbacks import CallbackManagerForRetrieverRun
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
 from weaviate import WeaviateClient
 from src.embeddings.embedder import embed_query
 from src.models.models import ChunkMetadata, RetrievedChunk
-from src.vectorDB.vector_store import create_weaviate_client
 
 def retrieve(
     client: WeaviateClient,
@@ -34,10 +36,22 @@ def retrieve(
     return chunks
 
 
-if __name__ == "__main__":
-    client = create_weaviate_client()
-    try:
-        for chunk in retrieve(client, "What is the audit log retention period?", "HellixData"):
-            print(f"{chunk.score:.3f}  {chunk.metadata.source}  {chunk.text[:80]!r}")
-    finally:
-        client.close()
+class WeaviateRetriever(BaseRetriever):
+    """LangChain retriever over a Weaviate collection of embedded chunks."""
+
+    client: WeaviateClient
+    collection_name: str
+    top_k: int = 5
+
+    def _get_relevant_documents(
+        self, query: str, *, run_manager: CallbackManagerForRetrieverRun
+    ) -> list[Document]:
+        chunks = retrieve(self.client, query, self.collection_name, self.top_k)
+        return [
+            Document(
+                id=chunk.id,
+                page_content=chunk.text,
+                metadata={**chunk.metadata.model_dump(mode="json"), "score": chunk.score},
+            )
+            for chunk in chunks
+        ]
