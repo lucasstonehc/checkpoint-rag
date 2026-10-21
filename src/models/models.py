@@ -17,3 +17,7 @@ class Chunk(BaseModel):
 
 class EmbeddedChunk(Chunk):
     embedding_vector: list[float]
+
+
+class RetrievedChunk(Chunk):
+    score: float

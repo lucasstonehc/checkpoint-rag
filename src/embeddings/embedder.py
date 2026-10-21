@@ -2,10 +2,16 @@ import ollama
 from src.models.models import Chunk, EmbeddedChunk
 
 
+EMBEDDING_MODEL = "qwen3-embedding:8b"
+
+
+def embed_query(query: str) -> list[float]:
+    return ollama.embed(model=EMBEDDING_MODEL, input=query)["embeddings"][0]
+
+
 def embedding(chunk: Chunk):
 
-    model = "qwen3-embedding:8b"
-    single = ollama.embed(model=model, input=chunk.text)
+    single = ollama.embed(model=EMBEDDING_MODEL, input=chunk.text)
 
     return EmbeddedChunk(
         id=chunk.id,
