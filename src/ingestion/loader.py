@@ -98,17 +98,20 @@ def iter_document_files(root: str | Path, suffixes: set[str] = frozenset(SUFFIXE
                 yield Path(folder) / name
 
 
-if __name__ == "__main__":
-    root = Path(__file__).resolve().parents[2] / "corpus"
+CORPUS_DIR = Path(__file__).resolve().parents[2] / "corpus"
+
+
+def ingest(root: str | Path = CORPUS_DIR, collection_name: str = "HellixData") -> None:
+    """Load, chunk, embed and store every supported document under root."""
+    root = Path(root)
     if not root.is_dir():
         raise FileNotFoundError(f"Corpus folder not found: {root}")
 
-    collection_name = "HellixData"
     weaviate_client = create_weaviate_client()
     try:
         create_collection(client=weaviate_client, collection_name=collection_name)
 
-        for file_path in iter_document_files(root, suffixes={".md",".html", ".pdf"}):
+        for file_path in iter_document_files(root):
             print(f"Loading file {file_path}")
             elements, document_type = load_document(file_path)
             elements = summarize_images(elements, file_path)

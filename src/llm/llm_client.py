@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
-from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
 from langchain_core.retrievers import BaseRetriever
 from langchain_ollama import ChatOllama
 from src.models.models import GeneratedAnswer
@@ -11,7 +11,7 @@ import os
 
 load_dotenv()
 LLM_MODEL = os.getenv("LLM_MODEL")
-NUM_CTX = 4096 
+NUM_CTX = 16384
 
 
 def strip_thinking(text: str) -> str:
@@ -31,22 +31,19 @@ def summarize_image(image_base64: str, mime_type: str, model: str = LLM_MODEL) -
     return strip_thinking(llm.invoke([message]).text)
 
 
-def answer_question(question: str, retriever: BaseRetriever, model: str = LLM_MODEL) -> str:
+def answer_question(question: str, retriever: BaseRetriever, model: str = LLM_MODEL) -> GeneratedAnswer:
     llm = ChatOllama(model=model, temperature=0, num_ctx=NUM_CTX, reasoning=False)
-    chain = RAG_PROMPT | llm | PydanticOutputParser(pydantic_object=GeneratedAnswer)
+    parser = PydanticOutputParser(pydantic_object=GeneratedAnswer)
+    chain = RAG_PROMPT | llm | StrOutputParser()  # template | llm | text
 
     documents = retriever.invoke(question) #he might change, cause i need to rerank it.
     context = format_context(documents)
 
-    reply = chain.invoke({"context": context, "user_query": question})
-    return strip_thinking(reply)
-
-
-if __name__ == "__main__":
-    
-    client = create_weaviate_client()
-    try:
-        retriever = WeaviateRetriever(client=client, collection_name="HellixData", top_k=5)
-        print(answer_question("Our team is migrating from Okta to Azure AD this weekend. What do we need to know to avoid a redirect loop?", retriever))
-    finally:
-        client.close()
+    reply = chain.invoke(
+        {
+            "context": context,
+            "user_query": question,
+            "format_instructions": parser.get_format_instructions(),
+        }
+    )
+    return parser.parse(strip_thinking(reply))

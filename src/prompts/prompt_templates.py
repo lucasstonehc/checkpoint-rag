@@ -8,14 +8,15 @@ RAG_PROMPT = PromptTemplate.from_template(
     - If the context does not contain the answer, say "I couldn't find this in the documentation." Do not make up an answer.
     - If the context only partly answers the question, give the part it supports and say what is missing.
     - Be concise and direct. State exact numbers, limits, names and status codes as written in the context.
-    - Cite the source file(s) you used at the end, as "Sources: <file>, <file>".
+    - In "sources", list the source file path(s) you used, exactly as written in the [Source: ...] lines. Use an empty list if you found no answer.
+    - Set "confidence" to high only when the context states the answer directly, medium if you had to combine facts, low if it is partial or missing.
 
     Context:
     {context}
 
     Question: {user_query}
 
-    Answer:"""
+    {format_instructions}"""
     )
 
 
@@ -23,10 +24,6 @@ def format_context(documents: list[Document]) -> str:
     return "\n\n".join(
         f"[Source: {doc.metadata['source']}]\n{doc.page_content}" for doc in documents
     )
-
-
-def prompt_template(user_query: str, context: str) -> str:
-    return RAG_PROMPT.format(user_query=user_query, context=context)
 
 
 IMAGE_PROMPT = (
