@@ -9,11 +9,12 @@ def chunking(
     elements: list[Element],
     file_path: str | Path,
     chunk_size: int = 2000,
-    document_type: DocumentType = DocumentType.MARKDOWN,
+    document_type: DocumentType = DocumentType.MARKDOWN, #chagne this default
 ) -> list[Chunk]:
     path = Path(file_path)
     text = "\n\n".join(element.text for element in elements)
     title = next((e.text for e in elements if isinstance(e, Title)), None)
+    # title should be just one:
 
     splitter = MarkdownTextSplitter(chunk_size=chunk_size)
     document_id = f"{path.parent.name}-{path.stem}"

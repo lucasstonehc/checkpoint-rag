@@ -1,9 +1,10 @@
+import os
 import ollama
+from dotenv import load_dotenv
 from src.models.models import Chunk, EmbeddedChunk
 
-
-EMBEDDING_MODEL = "qwen3-embedding:8b"
-
+load_dotenv()
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL") 
 
 def embed_query(query: str) -> list[float]:
     return ollama.embed(model=EMBEDDING_MODEL, input=query)["embeddings"][0]

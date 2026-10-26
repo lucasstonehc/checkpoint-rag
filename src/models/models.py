@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 from pydantic import BaseModel, Field
 from src.utils.document_type import DocumentType
 
@@ -21,3 +22,13 @@ class EmbeddedChunk(Chunk):
 
 class RetrievedChunk(Chunk):
     score: float
+
+
+class GeneratedAnswer(BaseModel):
+    answer: str = Field(description="The generated answer.")
+    sources: list[str] = Field(
+        description="IDs of the documents used to generate the answer."
+    )
+    confidence: Literal["low", "medium", "high"] = Field(
+        description="The estimated confidence level of the answer."
+    )

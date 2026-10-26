@@ -1,16 +1,17 @@
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
-from langchain_core.output_parsers import StrOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.retrievers import BaseRetriever
 from langchain_ollama import ChatOllama
+from src.models.models import GeneratedAnswer
 from src.prompts.prompt_templates import RAG_PROMPT, IMAGE_PROMPT, format_context
 from src.retrieval.retriever import WeaviateRetriever
 from src.vectorDB.vector_store import create_weaviate_client
 import os
 
 load_dotenv()
-LLM_MODEL = os.getenv("LLM_MODEL")  # must be a multimodal model, it also reads the images
-NUM_CTX = 4096  # Ollama's default of 4096 is too small for an image or 5 retrieved chunks
+LLM_MODEL = os.getenv("LLM_MODEL")
+NUM_CTX = 4096 
 
 
 def strip_thinking(text: str) -> str:
@@ -19,6 +20,7 @@ def strip_thinking(text: str) -> str:
 
 
 def summarize_image(image_base64: str, mime_type: str, model: str = LLM_MODEL) -> str:
+    # NEED to Adjust this model here
     llm = ChatOllama(model=model, temperature=0, num_ctx=NUM_CTX)
     message = HumanMessage(
         content=[
@@ -31,9 +33,9 @@ def summarize_image(image_base64: str, mime_type: str, model: str = LLM_MODEL) -
 
 def answer_question(question: str, retriever: BaseRetriever, model: str = LLM_MODEL) -> str:
     llm = ChatOllama(model=model, temperature=0, num_ctx=NUM_CTX, reasoning=False)
-    chain = RAG_PROMPT | llm | StrOutputParser()
+    chain = RAG_PROMPT | llm | PydanticOutputParser(pydantic_object=GeneratedAnswer)
 
-    documents = retriever.invoke(question)
+    documents = retriever.invoke(question) #he might change, cause i need to rerank it.
     context = format_context(documents)
 
     reply = chain.invoke({"context": context, "user_query": question})
